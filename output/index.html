@@ -1,0 +1,148 @@
+<html>
+	<head>
+		<script type="text/javascript" src="jquery-2.1.4.min.js"></script>
+		<script type="text/javascript" src="filereader.js"></script>
+		<script type="text/javascript" src="jquery.mousewheel.min.js"></script>
+		<script type="text/javascript" src="poly2tri.min.js"></script>
+
+		<script type="text/javascript" src="DoomEdOTG.js"></script>
+		<script type="text/javascript" src="DoomThings.js"></script>
+		<script type="text/javascript" src="EditingMode.js"></script>
+		<script type="text/javascript" src="GraphicsManager.js"></script>
+		<script type="text/javascript" src="Linedef.js"></script>
+		<script type="text/javascript" src="Map.js"></script>
+		<script type="text/javascript" src="MapIO.js"></script>
+		<script type="text/javascript" src="Renderer2D.js"></script>
+		<script type="text/javascript" src="Sector.js"></script>
+		<script type="text/javascript" src="SectorsMode.js"></script>
+		<script type="text/javascript" src="Sidedef.js"></script>
+		<script type="text/javascript" src="Thing.js"></script>
+		<script type="text/javascript" src="Tools.js"></script>
+		<script type="text/javascript" src="Vector.js"></script>
+		<script type="text/javascript" src="Vertex.js"></script>
+		<script type="text/javascript" src="WADFile.js"></script>
+		<script type="text/javascript" src="WADManager.js"></script>
+		<script type="text/javascript" src="main.js"></script>		
+		
+		<!-- <link href="css/bootstrap.min.css" rel="stylesheet"> -->
+		<script type="text/javascript" src="js/bootstrap.min.js"></script>
+	</head>
+	<body style="font-family:verdana;font-size:12px">
+		<span id="loadButtons">
+		IWAD: <input type="file" id="iwad-input"></input>
+		PWAD: <input type="file" id="pwad-input"></input>
+		<input type="button" id="process" value="Load">
+		</span>
+		<br><br><select id="maps" size="36"></select>
+		
+		<span id="editorContainer" style="display:none">
+			<canvas id="mapCanvas" style="background-color:#000000;border:1px solid black;float:left;position:absolute;left:100px;top:40px"></canvas>
+			
+			<div id="sectorInfoOverlay" style="display:none;background-color:#f0f0f0;border:1px solid black;padding:3px;position:absolute;left:103px;top:43px">
+				Sector: <span id="number"></span><br>
+				Light: <span id="light"></span><br>
+				Tag: <span id="tag"></span><br>
+				Type: <span id="type"></span><br>
+				<div style="border:1px solid black;padding:3px">
+					<b>Floor</b><br>
+					Height: <span id="floorHeight"></span><br>
+					<img id="floorImage"><br>
+					<span id="floorName"></span>
+				</div>
+				<div style="border:1px solid black;padding:3px;margin-top:3px">
+					<b>Ceiling</b><br>
+					Height: <span id="ceilingHeight"></span><br>
+					<img id="ceilingImage"><br>
+					<span id="ceilingName"></span>
+				</div>
+			</div>
+
+		</span>
+		
+		
+		<div id="output"><div>		
+
+		
+		<script>
+		
+		InitializeDEOTG();
+		
+		DEOTG.currentMode = new SectorsMode();
+		
+		$('#maps').on('change', function() {
+			DEOTG.map = DEOTG.wadManager.pwad.mapIO[MapType.Doom].read(this.value);
+			DEOTG.map.centerMap();
+		});
+		
+		var lastMousePos = new Vector(0, 0);
+		
+		$('canvas').mousemove(function(event) {
+			event.preventDefault();
+			
+			DEOTG.currentMode.onMouseMove(event);
+		});		
+		
+		$('canvas').mousewheel(function(event) {
+			event.preventDefault();
+			
+			DEOTG.currentMode.onMouseWheel(event, event.deltaY);
+		});
+		
+		$('canvas').mousedown(function(event) {
+			event.preventDefault();
+			
+			DEOTG.currentMode.onMouseDown(event);
+		});
+		
+		$('canvas').mouseup(function(event) {
+			event.preventDefault();
+
+			DEOTG.currentMode.onMouseUp(event);
+		});
+		
+		$('#process').click(function() {
+			DEOTG.graphicsManager.loadPalette(DEOTG.wadManager.getLump("PLAYPAL").data);
+			DEOTG.wadManager.loadFlats(DEOTG.graphicsManager);
+			
+			var mapNames = DEOTG.wadManager.pwad.getMapNames().sort();
+			
+			$('#maps').find('option').remove();
+			
+			for(var i in mapNames) {
+				var o = $("<option></option>");
+				o.attr("value", mapNames[i]).text(mapNames[i]);
+				$('#maps').append(o);
+			}
+			
+			DEOTG.map = DEOTG.wadManager.pwad.mapIO[MapType.Doom].read(mapNames[0]);
+			
+			$('#loadButtons').hide();
+			$('#editorContainer').show();
+			
+			DEOTG.renderer2d.setSize(window.innerWidth - 120, window.innerHeight - 50);
+			DEOTG.map.centerMap();
+			
+			DEOTG.currentMode.onRedraw();
+		});
+		
+		FileReaderJS.setupInput(document.getElementById('iwad-input'), {
+			readAsDefault: 'ArrayBuffer',
+			on: {
+				load: function(e, file) {
+					DEOTG.wadManager.addIWAD(e.target.result);
+				}
+			}
+		});
+		
+		FileReaderJS.setupInput(document.getElementById('pwad-input'), {
+			readAsDefault: 'ArrayBuffer',
+			on: {
+				load: function(e, file) {
+					DEOTG.wadManager.addPWAD(e.target.result);
+				}
+			}
+		});
+
+		</script>
+	</body>
+</html>
